@@ -1,8 +1,6 @@
-(ql:quickload "cl-graph")
-
 (defpackage avl-tree
   (:nicknames :avl)
-  (:use cl-graph common-lisp))
+  (:use common-lisp))
 
 (in-package :avl)
 
@@ -21,10 +19,6 @@
 ;;; -------------------------------------------------------------------------
 ;;; util methods
 ;;; -------------------------------------------------------------------------
-(defun make-avl (val)
-  (make-instance 'avl
-                 :node val))
-
 (defmethod get-node ((tree avl))
   (node tree))
 
@@ -81,6 +75,18 @@
     (avl-traverse tree (lambda (x) (push x keys)))
     keys))
 
+(defmethod avl-edges ((tree avl))
+  (append
+   (remove nil (list (if (get-left tree)
+                         (list (get-node tree) (get-node (get-left tree)) :L))
+                     (if (get-right tree)
+                         (list (get-node tree) (get-node (get-right tree)) :R))))
+   (avl-edges (get-left tree))
+   (avl-edges (get-right tree))))
+
+(defmethod avl-edges ((tree t))
+  ())
+
 (defmethod avl-balance ((tree avl))
   (cond
     ((< (get-balance tree) 0)
@@ -105,7 +111,7 @@
   tree)
 
 (defmethod print-object ((tree avl) stream)
-  (format stream "~A (~A ~A)" (get-node tree) (get-left tree) (get-right tree)))
+  (format stream "(~A (~A ~A))" (get-node tree) (get-left tree) (get-right tree)))
 
 ;;; -------------------------------------------------------------------------
 ;;; interface methods
@@ -204,21 +210,7 @@
 ;;; -------------------------------------------------------------------------
 ;;; converting to graph
 ;;; -------------------------------------------------------------------------
-(defmethod avl->dot-helper ((tree avl) g)
-  (let ((start (add-vertex g (get-node tree) :if-duplicate-do :error))
-        (left (avl->dot-helper (get-left tree) g))
-        (right (avl->dot-helper (get-right tree) g)))
-    (if left
-        (add-edge-between-vertexes g start left :value "L"))
-    (if right
-        (add-edge-between-vertexes g start right :value "R"))
-    start))
-
-(defmethod avl->dot-helper ((tree t) g)
-  (if tree
-      (add-vertex g tree :if-duplicate-do :error)))
-
-(defun my-graph->dot (g s)
+(defmethod avl->dot-helper ((g avl) s)
   (let ((id-map (make-hash-table))
         (i 0))
     (labels ((%get-id (el)
@@ -227,26 +219,26 @@
                (setf (gethash el id-map) i)
                (setf i (1+ i))
                (1- i))
-             (%header () (format s "digraph G {~%"))
+             (%header ()
+               (format s "digraph G {~%"))
              (%footer () (format s "}~%"))
              (%add-vertexes ()
                (mapc (lambda (x)
-                       (format s "~a [label=\"~a\"];~%" (%gen-id x) (element x))) (vertexes g)))
+                       (format s "~a [label=\"~a\"];~%" (%gen-id x) x)) (reverse (avl-keys g))))
              (%add-edges ()
                (mapc (lambda (x)
                        (format s "~a -> ~a [label=\"~a\"];~%"
-                               (%get-id (vertex-1 x)) (%get-id (vertex-2 x)) (element x))) (edges g))))
+                               (%get-id (first x)) (%get-id (second x)) (third x))) (avl-edges g))))
       (%header)
       (%add-vertexes)
       (%add-edges)
       (%footer))))
 
 (defmethod avl->dot ((tree avl) &key (path "~/OS_Lab4/tree"))
-  (let ((g (make-graph 'graph-container :default-edge-type :directed)))
-    (avl->dot-helper tree g)
-    (with-open-file (s (format nil "~A.dot" path) :direction :output :if-exists :supersede)
-      (my-graph->dot g s))
-    (asdf:run-shell-command "dot -Tsvg ~A.dot -o ~A.svg" path path)))
+  (ensure-directories-exist path)
+  (with-open-file (s (format nil "~A.dot" path) :direction :output :if-exists :supersede)
+    (avl->dot-helper tree s))
+  (asdf:run-shell-command "dot -Tsvg ~A.dot -o ~A.svg" path path))
 
 (defmethod avl->dot ((tree t) &key path)
   (declare (ignore path)))

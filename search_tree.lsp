@@ -89,7 +89,7 @@
 
 (defmethod avl-balance ((tree avl))
   (cond
-    ((< (get-balance tree) 0)
+    ((< (get-balance tree) -1)
      (make-instance 'avl
                     :node (get-node (get-left tree))
                     :left (get-left (get-left tree))
@@ -97,7 +97,7 @@
                                           :node (get-node tree)
                                           :right (get-right tree)
                                           :left (get-right (get-left tree)))))
-    ((> (get-balance tree) 0)
+    ((> (get-balance tree) 1)
      (make-instance 'avl
                     :node (get-node (get-right tree))
                     :left (make-instance 'avl
@@ -139,15 +139,16 @@
 
 
 (defmethod avl-insert (key (tree avl))
-  (if (< key (get-node tree))
-      (avl-balance (make-instance 'avl
-                                  :node (get-node tree)
-                                  :left (avl-insert key (get-left tree))
-                                  :right(get-right tree)))
-      (avl-balance (make-instance 'avl
-                                  :node (get-node tree)
-                                  :left (get-left tree)
-                                  :right (avl-insert key (get-right tree))))))
+  (avl-balance
+   (if (< key (get-node tree))
+       (make-instance 'avl
+                      :node (get-node tree)
+                      :left (avl-insert key (get-left tree))
+                      :right(get-right tree))
+       (make-instance 'avl
+                      :node (get-node tree)
+                      :left (get-left tree)
+                      :right (avl-insert key (get-right tree))))))
 
 (defmethod avl-insert (key (tree t))
   (if tree
@@ -162,46 +163,46 @@
 
 
 (defmethod avl-remove (key (tree avl))
-  (avl-balance (if (= (get-node tree) key)
-                   (cond
-                     ((and (null (get-left tree))
-                           (null (get-right tree)))
-                      nil)
-                     ((null (get-left tree))
-                      (make-instance 'avl
-                                     :node (get-node (get-right tree))
-                                     :left (get-left (get-right tree))
-                                     :right (get-right (get-right tree))))
-                     ((null (get-right tree))
-                      (make-instance 'avl
-                                     :node (get-node (get-left tree))
-                                     :left (get-left (get-left tree))
-                                     :right (get-right (get-left tree))))
-                     (t (avl-balance
-                         (if (>= (get-balance tree) 0)
-                             (let ((new-node (get-leftmost (get-right tree))))
-                               (make-instance 'avl
-                                              :node new-node
-                                              :left (get-left tree)
-                                              :right (avl-remove
-                                                      new-node
-                                                      (get-right tree))))
-                             (let ((new-node (get-rightmost (get-left tree))))
-                               (make-instance 'avl
-                                              :node new-node
-                                              :left (avl-remove
-                                                     new-node
-                                                     (get-left tree))
-                                              :right (get-right tree)))))))
-                   (if (< key (get-node tree))
-                       (make-instance 'avl
-                                      :node (get-node tree)
-                                      :left (avl-remove key (get-left tree))
-                                      :right (get-right tree))
-                       (make-instance 'avl
-                                      :node (get-node tree)
-                                      :left (get-left tree)
-                                      :right (avl-remove key (get-right tree)))))))
+  (if (= (get-node tree) key)
+      (cond
+        ((and (null (get-left tree))
+              (null (get-right tree)))
+         nil)
+        ((null (get-left tree))
+         (make-instance 'avl
+                        :node (get-node (get-right tree))
+                        :left (get-left (get-right tree))
+                        :right (get-right (get-right tree))))
+        ((null (get-right tree))
+         (make-instance 'avl
+                        :node (get-node (get-left tree))
+                        :left (get-left (get-left tree))
+                        :right (get-right (get-left tree))))
+        (t (avl-balance
+            (if (>= (get-balance tree) 0)
+                (let ((new-node (get-leftmost (get-right tree))))
+                  (make-instance 'avl
+                                 :node new-node
+                                 :left (get-left tree)
+                                 :right (avl-remove
+                                         new-node
+                                         (get-right tree))))
+                (let ((new-node (get-rightmost (get-left tree))))
+                  (make-instance 'avl
+                                 :node new-node
+                                 :left (avl-remove
+                                        new-node
+                                        (get-left tree))
+                                 :right (get-right tree)))))))
+      (if (< key (get-node tree))
+          (make-instance 'avl
+                         :node (get-node tree)
+                         :left (avl-remove key (get-left tree))
+                         :right (get-right tree))
+          (make-instance 'avl
+                         :node (get-node tree)
+                         :left (get-left tree)
+                         :right (avl-remove key (get-right tree))))))
 
 (defmethod avl-remove (key (tree t))
   (unless (= key tree)

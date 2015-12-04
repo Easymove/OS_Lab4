@@ -57,7 +57,9 @@
   (1+ (max (high (get-left tree)) (high (get-right tree)))))
 
 (defmethod high ((tree t))
-  1)
+  (if tree
+      1
+      0))
 
 (defmethod get-balance ((tree avl))
   (- (high (get-right tree)) (high (get-left tree))))
